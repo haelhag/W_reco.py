@@ -7,6 +7,8 @@ from numpy import *
 rootFiles = loadtxt('/nfs/dust/cms/user/sobhatta/work/TopTagPol/TreeMaker/CMSSW_10_5_0/src/sourceFiles/Wprimetotb_M2000W20_LH_TuneCP5_13TeV-madgraph-pythia8_RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1_NANOAODSIM/Wprimetotb_M2000W20_LH_TuneCP5_13TeV-madgraph-pythia8_RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1_NANOAODSIM.txt', dtype=str, delimiter = " ")
 
 TopHist = ROOT.TH1D('TopHist', '', 50, 0, 500)
+MaxPtJetHist = ROOT.TH1D('MaxPtJetHist', '', 500, 0, 500)
+SubMaxPtJetHist = ROOT.TH1D('SubMaxPtJetHist', '', 500, 0, 500)
 WmTHist = ROOT.TH1D('WmTHist', '', 100, 0, 200)
 WmIHist = ROOT.TH1D('WmIHist', '', 200, 80.395, 80.405)
 WmtHist = ROOT.TH1D('WmtHist', '', 100, 0, 1400)
@@ -59,7 +61,7 @@ for rootFile in rootFiles:
         ele_maxpt_idx = 0
         for iEle in range(0,len(Ele_pt)):
             #print(Ele_pt[iEle])
-            if Ele_pt[iEle] < 100 or abs(Ele_eta[iEle]) > 2.5 or Ele_noIso[iEle] != 1 or Ele_miniIso[iEle] > 0.1:
+            if Ele_pt[iEle] < 100 or abs(Ele_eta[iEle]) > 2.5 or Ele_noIso[iEle] != 1:# or Ele_miniIso[iEle] > 0.1:
                 continue
             ele_cut_count += 1
             if Ele_pt[iEle] > Ele_pt[ele_maxpt_idx]:
@@ -68,7 +70,7 @@ for rootFile in rootFiles:
         mu_cut_count = 0
         mu_maxpt_idx = 0 
         for iMu in range(0, len(Muon_pt)):
-            if Muon_pt[iMu] < 100 or abs(Muon_eta[iMu]) > 2.1 or Muon_tightId[iMu] != 1 or Muon_miniIso[iMu] > 0.1:
+            if Muon_pt[iMu] < 100 or abs(Muon_eta[iMu]) > 2.1 or Muon_tightId[iMu] != 1:# or Muon_miniIso[iMu] > 0.1:
                 continue
             mu_cut_count += 1
             if Muon_pt[iMu] > Muon_pt[mu_maxpt_idx]:
@@ -92,6 +94,9 @@ for rootFile in rootFiles:
                 jet_maxpt_idx = iJet
             if abs(Jet_pt[jet_maxpt_idx] - Jet_pt[iJet]) < abs(Jet_pt[jet_maxpt_idx] - Jet_pt[jet_sub_maxpt_idx]):
                 jet_sub_maxpt_idx = iJet
+        
+        MaxPtJetHist.Fill(Jet_pt[jet_maxpt_idx])
+        SubMaxPtJetHist.Fill(Jet_pt[jet_sub_maxpt_idx])
         
         if jet_cut_count < 2 or Jet_pt[jet_maxpt_idx] < 300 or Jet_pt[jet_sub_maxpt_idx] < 150:
             continue
@@ -148,13 +153,6 @@ for rootFile in rootFiles:
                     #discr = (lamda*mu.Pz())**2/(mu.Pt())**4 - ((mu.E()*nu.Pt())**2 - lamda**2)/(mu.Pt())**2
 
                     if WmT > 80.4 or discr < 0:
-                        # k = nu.Et() * Ele.Pt() - nu.Px() * Ele.Px() - nu.Py() * Ele.Py()
-                        # if k < 0.0001:
-                        #     k = 0.0001
-                        # scf = 1/2 * 80.4**2/k
-                        # nu.SetPx(nu.Px()*scf)
-                        # nu.SetPy(nu.Py()*scf)
-                        #nu.SetE(nu.P())
 
                         s = (lamda*Ele.Pz())/(Ele.Pt())**2
                         #s = (lamda*mu.Pz())/(mu.Pt())**2
@@ -391,7 +389,7 @@ for rootFile in rootFiles:
     file_count += 1
     events_count += entries
     print('events count =', events_count)
-    if events_count >= 10000:
+    if events_count >= 80000:
         break
     
 
@@ -403,10 +401,6 @@ WmtHist.SetStats(0)
 WmtHist.SetLineColor(kRed)
 WmtHist.SetLineWidth(2)
 WmtHist.Draw()
-#legend = ROOT.TLegend(0.15 ,0.7 ,0.45 ,0.8)
-#legend.AddEntry(JetHist, "p_{T} > 100 GeV and #eta < 2.5")
-#legend.SetLineWidth (0)
-#legend.Draw("same")
 c1.SaveAs('W_trans_mass.pdf')
 
 c2 = ROOT.TCanvas( 'c2', 'W_mass', 1000, 875 )
@@ -417,10 +411,6 @@ WmTHist.SetStats(0)
 WmTHist.SetLineColor(kRed)
 WmTHist.SetLineWidth(2)
 WmTHist.Draw()
-#legend = ROOT.TLegend(0.15 ,0.7 ,0.45 ,0.8)
-#legend.AddEntry(JetHist, "p_{T} > 100 GeV and #eta < 2.5")
-#legend.SetLineWidth (0)
-#legend.Draw("same")
 c2.SaveAs('W_reco_mT.pdf')
 
 c3 = ROOT.TCanvas( 'c3', 'Top_mass', 1000, 875 )
@@ -431,10 +421,6 @@ TopHist.SetStats(0)
 TopHist.SetLineColor(kRed)
 TopHist.SetLineWidth(2)
 TopHist.Draw()
-#legend = ROOT.TLegend(0.15 ,0.7 ,0.45 ,0.8)
-#legend.AddEntry(JetHist, "p_{T} > 100 GeV and #eta < 2.5")
-#legend.SetLineWidth (0)
-#legend.Draw("same")
 c3.SaveAs('Top_reco_mass.pdf')
 
 c4 = ROOT.TCanvas( 'c4', 'W_inv_mass', 1000, 875 )
@@ -445,10 +431,6 @@ WmIHist.SetStats(0)
 WmIHist.SetLineColor(kRed)
 WmIHist.SetLineWidth(2)
 WmIHist.Draw()
-#legend = ROOT.TLegend(0.15 ,0.7 ,0.45 ,0.8)
-#legend.AddEntry(JetHist, "p_{T} > 100 GeV and #eta < 2.5")
-#legend.SetLineWidth (0)
-#legend.Draw("same")
 c4.SaveAs('W_mI.pdf')
 
 c5 = ROOT.TCanvas( 'c5', 'DrEleJet1', 1000, 875 )
@@ -459,10 +441,6 @@ DrEleJet1Hist.SetStats(0)
 DrEleJet1Hist.SetLineColor(kRed)
 DrEleJet1Hist.SetLineWidth(2)
 DrEleJet1Hist.Draw()
-#legend = ROOT.TLegend(0.15 ,0.7 ,0.45 ,0.8)
-#legend.AddEntry(JetHist, "p_{T} > 100 GeV and #eta < 2.5")
-#legend.SetLineWidth (0)
-#legend.Draw("same")
 c5.SaveAs('DrEleJet1.pdf')
 
 c6 = ROOT.TCanvas( 'c6', 'DrMuonJet2', 1000, 875 )
@@ -473,12 +451,27 @@ DrEleJet2Hist.SetStats(0)
 DrEleJet2Hist.SetLineColor(kRed)
 DrEleJet2Hist.SetLineWidth(2)
 DrEleJet2Hist.Draw()
-#legend = ROOT.TLegend(0.15 ,0.7 ,0.45 ,0.8)
-#legend.AddEntry(JetHist, "p_{T} > 100 GeV and #eta < 2.5")
-#legend.SetLineWidth (0)
-#legend.Draw("same")
 c6.SaveAs('DrEleJet2.pdf')
 
+c7 = ROOT.TCanvas( 'c7', 'MaxPtJetHist', 1000, 875 )
+c7.cd()
+MaxPtJetHist.GetYaxis().SetTitle('Number of events')
+MaxPtJetHist.GetXaxis().SetTitle('dR(Ele,Jet2) [GeV]')
+MaxPtJetHist.SetStats(0)
+MaxPtJetHist.SetLineColor(kRed)
+MaxPtJetHist.SetLineWidth(2)
+MaxPtJetHist.Draw()
+c7.SaveAs('MaxPtJet.pdf')
+
+c8 = ROOT.TCanvas( 'c8', 'SubMaxPtJetHist', 1000, 875 )
+c8.cd()
+SubMaxPtJetHist.GetYaxis().SetTitle('Number of events')
+SubMaxPtJetHist.GetXaxis().SetTitle('dR(Ele,Jet2) [GeV]')
+SubMaxPtJetHist.SetStats(0)
+SubMaxPtJetHist.SetLineColor(kRed)
+SubMaxPtJetHist.SetLineWidth(2)
+SubMaxPtJetHist.Draw()
+c8.SaveAs('SubMaxPtJet.pdf')
 
 
 
