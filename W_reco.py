@@ -17,6 +17,8 @@ DrEleJet2Hist = ROOT.TH1D('DrEleJet2Hist', '', 100, 0, 10)
 file_count = 1
 events_count = 0
 
+lep_channel = 0
+
 for rootFile in rootFiles:
 
     print(rootFile, str(file_count)+'/21 files')
@@ -95,8 +97,9 @@ for rootFile in rootFiles:
             if abs(Jet_pt[jet_maxpt_idx] - Jet_pt[iJet]) < abs(Jet_pt[jet_maxpt_idx] - Jet_pt[jet_sub_maxpt_idx]):
                 jet_sub_maxpt_idx = iJet
         
-        MaxPtJetHist.Fill(Jet_pt[jet_maxpt_idx])
-        SubMaxPtJetHist.Fill(Jet_pt[jet_sub_maxpt_idx])
+        if jet_cut_count >=2:
+            MaxPtJetHist.Fill(Jet_pt[jet_maxpt_idx])
+            SubMaxPtJetHist.Fill(Jet_pt[jet_sub_maxpt_idx])
         
         if jet_cut_count < 2 or Jet_pt[jet_maxpt_idx] < 300 or Jet_pt[jet_sub_maxpt_idx] < 150:
             continue
@@ -114,282 +117,384 @@ for rootFile in rootFiles:
             #print(Ele_pt[ele_maxpt_idx], Ele_eta[ele_maxpt_idx], Ele_phi[ele_maxpt_idx], Ele_mass[ele_maxpt_idx] )
 
         if (ele_cut_count >= 1 or mu_cut_count >=1) and jet_cut_count >= 2:
+            lep = ROOT.Math.PtEtaPhiMVector()
+            nu = ROOT.Math.PxPyPzEVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), sqrt(nu_pt**2 + nu.Pz()**2))
+
             if ele_cut_count >= 1 and mu_cut_count >= 1:
                 if Ele_pt[ele_maxpt_idx] > Muon_pt[mu_maxpt_idx]:
-                    Ele = ROOT.Math.PtEtaPhiMVector(Ele_pt[ele_maxpt_idx], Ele_eta[ele_maxpt_idx], Ele_phi[ele_maxpt_idx], Ele_mass[ele_maxpt_idx])
-                    nu = ROOT.Math.PxPyPzEVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), sqrt(nu_pt**2 + nu.Pz()**2))
-                    #mu = ROOT.Math.PtEtaPhiMVector(Muon_pt[mu_maxpt_idx], Muon_eta[mu_maxpt_idx], Muon_phi[mu_maxpt_idx], Muon_mass[mu_maxpt_idx])
-                    
-                    JetP1 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_sub_maxpt_idx], Jet_eta[jet_sub_maxpt_idx], Jet_phi[jet_sub_maxpt_idx], Jet_mass[jet_sub_maxpt_idx])
-                    JetP2 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_maxpt_idx], Jet_eta[jet_maxpt_idx], Jet_phi[jet_maxpt_idx], Jet_mass[jet_maxpt_idx])   
-                    
-                    WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
-
-                    print('WmT^2=',WmT2)
-
-                    #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                    WmT =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-                    #WmT =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
-                    #WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-
-                    # 80.4 GeV is the W-boson pole mass
-                    if WmT > 80.4:
-                        k = nu.Et() * Ele.Pt() - nu.Px() * Ele.Px() - nu.Py() * Ele.Py()
-                        #k = nu.Et() * mu.Pt() - nu.Px() * mu.Px() - nu.Py() * mu.Py()
-                        if k < 0.0001:
-                            k = 0.0001
-                        scf = 1/2 * 80.4**2/k
-                        nu.SetPx(nu.Px()*scf)
-                        nu.SetPy(nu.Py()*scf)
-                        nu.SetE(nu.P())
-
-
-                            
-                    lamda = (80.4)**2/2 + Ele.Px()*nu.Px() + Ele.Py()*nu.Py()
-                    #lamda = (80.4)**2/2 + mu.Px()*nu.Px() + mu.Py()*nu.Py()
-                        
-                    #if Ele.Pt() > 0 or Ele.Pt() < 0:
-                    discr = (lamda*Ele.Pz())**2/(Ele.Pt())**4 - ((Ele.E()*nu.Pt())**2 - lamda**2)/(Ele.Pt())**2 
-                    #discr = (lamda*mu.Pz())**2/(mu.Pt())**4 - ((mu.E()*nu.Pt())**2 - lamda**2)/(mu.Pt())**2
-
-                    if WmT > 80.4 or discr < 0:
-
-                        s = (lamda*Ele.Pz())/(Ele.Pt())**2
-                        #s = (lamda*mu.Pz())/(mu.Pt())**2
-                        nu.SetPz(s)
-                        nu.SetE(nu.P())
-                        #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                    else:
-                        s1 = (lamda*Ele.Pz())/(Ele.Pt())**2 + sqrt(discr)
-                        s2 = (lamda*Ele.Pz())/(Ele.Pt())**2 - sqrt(discr)
-                        #s1 = (lamda*mu.Pz())/(mu.Pt())**2 + sqrt(discr)
-                        #s2 = (lamda*mu.Pz())/(mu.Pt())**2 - sqrt(discr)
-
-                        nu.SetPz(s1)
-                        nu.SetE(nu.P())
-                        #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                        #Wm1 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-                        #Wm1 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                        Wm1 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-                        #Wm1 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
-
-                        nu.SetPz(s2)
-                        nu.SetE(nu.P())
-                        #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                        #Wm2 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-                        #Wm2 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                        Wm2 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-                        #Wm2 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
-
-                        if abs(Wm2 - 80.4) > abs(Wm1 - 80.4):    
-                            nu.SetPz(s1)
-                            nu.SetE(nu.P())
-                            #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                            
-                        else:
-                            nu.SetPz(s2)
-                            nu.SetE(nu.P())
-                            #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                                
-            
-                #if ele_cut_count >= 1 and jet_cut_count >= 2:
-                    #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                    #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-
-                    WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-                    WmT = sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-
-                    # WmI2 = (Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2
-                    # WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
-
-                    # print('WmI^2=',WmI2,',WmT^2=',WmT2)
-
-
-                    #WmI = sqrt((mu.E()+nu.E())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2-(mu.Pz()+nu.Pz())**2)
-                    #WmT = sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
-
-                    print(WmT)
-                    WmTHist.Fill(WmT)
-                    Pw = Ele + nu
-                    #Pw = mu + nu
-                    WmtHist.Fill(Pw.Mt())
-                    WmIHist.Fill(WmI)
-                    #Mw2 = Pw.Dot(Pw)
-                    #print(sqrt(Mw2))
-
-                #if (Jet_pt[jet_sub_maxpt_idx] > 25 and Jet_eta[jet_sub_maxpt_idx] < 2.4) and jet_cut_count >= 2 and ele_cut_count >= 1:
-                    Ptop1 = Pw + JetP1
-                    #Mtop1 = sqrt(Ptop1.Dot(Ptop1))
-                    Mtop1 = Ptop1.M()
-                    Ptop2 = Pw + JetP2
-                    #Mtop2 = sqrt(Ptop2.Dot(Ptop2))
-                    Mtop2 = Ptop2.M()
-                    #Ptop12 = Ptop1 + Ptop2
-                    if abs(Mtop1-172.5) > abs(Mtop2-172.5):
-                        Mtop = Mtop2
-                    else:
-                        Mtop = Mtop1
-                    #if (Ptop1.Pt() > 250 and Ptop12.Pt() > 350) or (Ptop2.Pt() > 250 and Ptop12.Pt() > 350):
-                        #if Mtop > 120 and Mtop < 220:
-                    TopHist.Fill(Mtop)
-
-                    # DrMuonJet1 = ROOT.Math.VectorUtil.DeltaR(mu, JetP1)
-                    # DrMuonJet1Hist.Fill(DrMuonJet1)
-
-                    # DrMuonJet2 = ROOT.Math.VectorUtil.DeltaR(mu, JetP2)
-                    # DrMuonJet2Hist.Fill(DrMuonJet2)
-
-                    DrEleJet1 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP1)
-                    DrEleJet1Hist.Fill(DrEleJet1)
-
-                    DrEleJet2 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP2)
-                    DrEleJet2Hist.Fill(DrEleJet2)
-            elif ele_cut_count >= 1 and mu_cut_count < 1:
-                Ele = ROOT.Math.PtEtaPhiMVector(Ele_pt[ele_maxpt_idx], Ele_eta[ele_maxpt_idx], Ele_phi[ele_maxpt_idx], Ele_mass[ele_maxpt_idx])
-                nu = ROOT.Math.PxPyPzEVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), sqrt(nu_pt**2 + nu.Pz()**2))
-                #mu = ROOT.Math.PtEtaPhiMVector(Muon_pt[mu_maxpt_idx], Muon_eta[mu_maxpt_idx], Muon_phi[mu_maxpt_idx], Muon_mass[mu_maxpt_idx])
-                
-                #nu = ROOT.Math.PxPyPzMVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), 0)
-                #nu = ROOT.Math.PxPyPzEVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), nu.E())
-                #nu = ROOT.Math.PtEtaPhiEVector(nu_pt, nu.Eta(), nu_phi, nu.E())
-                #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-            
-            #if jet_cut_count >= 2 and ele_cut_count >= 1:
-                JetP1 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_sub_maxpt_idx], Jet_eta[jet_sub_maxpt_idx], Jet_phi[jet_sub_maxpt_idx], Jet_mass[jet_sub_maxpt_idx])
-                JetP2 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_maxpt_idx], Jet_eta[jet_maxpt_idx], Jet_phi[jet_maxpt_idx], Jet_mass[jet_maxpt_idx])   
-                
-                WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
-
-                print('WmT^2=',WmT2)
-
-                #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                WmT =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-                #WmT =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
-                #WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-
-                # 80.4 GeV is the W-boson pole mass
-                if WmT > 80.4:
-                    k = nu.Et() * Ele.Pt() - nu.Px() * Ele.Px() - nu.Py() * Ele.Py()
-                    #k = nu.Et() * mu.Pt() - nu.Px() * mu.Px() - nu.Py() * mu.Py()
-                    if k < 0.0001:
-                        k = 0.0001
-                    scf = 1/2 * 80.4**2/k
-                    nu.SetPx(nu.Px()*scf)
-                    nu.SetPy(nu.Py()*scf)
-                    nu.SetE(nu.P())
-
-
-                        
-                lamda = (80.4)**2/2 + Ele.Px()*nu.Px() + Ele.Py()*nu.Py()
-                #lamda = (80.4)**2/2 + mu.Px()*nu.Px() + mu.Py()*nu.Py()
-                    
-                #if Ele.Pt() > 0 or Ele.Pt() < 0:
-                discr = (lamda*Ele.Pz())**2/(Ele.Pt())**4 - ((Ele.E()*nu.Pt())**2 - lamda**2)/(Ele.Pt())**2 
-                #discr = (lamda*mu.Pz())**2/(mu.Pt())**4 - ((mu.E()*nu.Pt())**2 - lamda**2)/(mu.Pt())**2
-
-                if WmT > 80.4 or discr < 0:
-                    # k = nu.Et() * Ele.Pt() - nu.Px() * Ele.Px() - nu.Py() * Ele.Py()
-                    # if k < 0.0001:
-                    #     k = 0.0001
-                    # scf = 1/2 * 80.4**2/k
-                    # nu.SetPx(nu.Px()*scf)
-                    # nu.SetPy(nu.Py()*scf)
-                    #nu.SetE(nu.P())
-
-                    s = (lamda*Ele.Pz())/(Ele.Pt())**2
-                    #s = (lamda*mu.Pz())/(mu.Pt())**2
-                    nu.SetPz(s)
-                    nu.SetE(nu.P())
-                    #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+                    lep = ROOT.Math.PtEtaPhiMVector(Ele_pt[ele_maxpt_idx], Ele_eta[ele_maxpt_idx], Ele_phi[ele_maxpt_idx], Ele_mass[ele_maxpt_idx])
+                    lep_channel = 0
                 else:
-                    s1 = (lamda*Ele.Pz())/(Ele.Pt())**2 + sqrt(discr)
-                    s2 = (lamda*Ele.Pz())/(Ele.Pt())**2 - sqrt(discr)
-                    #s1 = (lamda*mu.Pz())/(mu.Pt())**2 + sqrt(discr)
-                    #s2 = (lamda*mu.Pz())/(mu.Pt())**2 - sqrt(discr)
+                    lep = ROOT.Math.PtEtaPhiMVector(Muon_pt[mu_maxpt_idx], Muon_eta[mu_maxpt_idx], Muon_phi[mu_maxpt_idx], Muon_mass[mu_maxpt_idx])
+                    lep_channel = 1
+            elif ele_cut_count >=1 and mu_cut_count <1:
+                lep = ROOT.Math.PtEtaPhiMVector(Ele_pt[ele_maxpt_idx], Ele_eta[ele_maxpt_idx], Ele_phi[ele_maxpt_idx], Ele_mass[ele_maxpt_idx])
+                lep_channel = 0
+            elif ele_cut_count < 1 and mu_cut_count >=1:
+                lep = ROOT.Math.PtEtaPhiMVector(Muon_pt[mu_maxpt_idx], Muon_eta[mu_maxpt_idx], Muon_phi[mu_maxpt_idx], Muon_mass[mu_maxpt_idx])
+                lep_channel = 1
 
+            
+            JetP1 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_sub_maxpt_idx], Jet_eta[jet_sub_maxpt_idx], Jet_phi[jet_sub_maxpt_idx], Jet_mass[jet_sub_maxpt_idx])
+            JetP2 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_maxpt_idx], Jet_eta[jet_maxpt_idx], Jet_phi[jet_maxpt_idx], Jet_mass[jet_maxpt_idx])   
+            
+            WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
+
+            print('WmT^2=',WmT2)
+
+            WmT =  sqrt((lep.Pt()+nu.Et())**2-(lep.Px()+nu.Px())**2-(lep.Py()+nu.Py())**2)
+
+            # 80.4 GeV is the W-boson pole mass
+            if WmT > 80.4:
+                k = nu.Et() * lep.Pt() - nu.Px() * lep.Px() - nu.Py() * lep.Py()
+                if k < 0.0001:
+                    k = 0.0001
+                scf = 1/2 * 80.4**2/k
+                nu.SetPx(nu.Px()*scf)
+                nu.SetPy(nu.Py()*scf)
+                nu.SetE(nu.P())
+         
+            lamda = (80.4)**2/2 + lep.Px()*nu.Px() + lep.Py()*nu.Py()
+
+            discr = (lamda*lep.Pz())**2/(lep.Pt())**4 - ((lep.E()*nu.Pt())**2 - lamda**2)/(lep.Pt())**2 
+
+            if WmT > 80.4 or discr < 0:
+                s = (lamda*lep.Pz())/(lep.Pt())**2
+                nu.SetPz(s)
+                nu.SetE(nu.P())
+            else:
+                s1 = (lamda*lep.Pz())/(lep.Pt())**2 + sqrt(discr)
+                s2 = (lamda*lep.Pz())/(lep.Pt())**2 - sqrt(discr)
+
+
+                nu.SetPz(s1)
+                nu.SetE(nu.P())
+                Wm1 =  sqrt((lep.Pt()+nu.Et())**2-(lep.Px()+nu.Px())**2-(lep.Py()+nu.Py())**2)
+
+                nu.SetPz(s2)
+                nu.SetE(nu.P())
+                Wm2 =  sqrt((lep.Pt()+nu.Et())**2-(lep.Px()+nu.Px())**2-(lep.Py()+nu.Py())**2)
+
+                if abs(Wm2 - 80.4) > abs(Wm1 - 80.4):    
                     nu.SetPz(s1)
                     nu.SetE(nu.P())
-                    #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                    #Wm1 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-                    #Wm1 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                    Wm1 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-                    #Wm1 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
-
+                    
+                else:
                     nu.SetPz(s2)
                     nu.SetE(nu.P())
-                    #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                    #Wm2 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-                    #Wm2 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                    Wm2 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-                    #Wm2 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
-
-                    if abs(Wm2 - 80.4) > abs(Wm1 - 80.4):    
-                        nu.SetPz(s1)
-                        nu.SetE(nu.P())
-                        #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
                         
-                    else:
-                        nu.SetPz(s2)
-                        nu.SetE(nu.P())
-                        #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
-                            
-        
-            #if ele_cut_count >= 1 and jet_cut_count >= 2:
-                #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
-                #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
 
-                WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
-                WmT = sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
-
-                # WmI2 = (Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2
-                # WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
-
-                # print('WmI^2=',WmI2,',WmT^2=',WmT2)
+            WmI = sqrt((lep.E()+nu.E())**2-(lep.Px()+nu.Px())**2-(lep.Py()+nu.Py())**2-(lep.Pz()+nu.Pz())**2)
+            WmT = sqrt((lep.Pt()+nu.Et())**2-(lep.Px()+nu.Px())**2-(lep.Py()+nu.Py())**2)
 
 
-                #WmI = sqrt((mu.E()+nu.E())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2-(mu.Pz()+nu.Pz())**2)
-                #WmT = sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+            print(WmT)
+            WmTHist.Fill(WmT)
+            Pw = lep + nu
+            WmtHist.Fill(Pw.Mt())
+            WmIHist.Fill(WmI)
 
-                print(WmT)
-                WmTHist.Fill(WmT)
-                Pw = Ele + nu
-                #Pw = mu + nu
-                WmtHist.Fill(Pw.Mt())
-                WmIHist.Fill(WmI)
-                #Mw2 = Pw.Dot(Pw)
-                #print(sqrt(Mw2))
+            Ptop1 = Pw + JetP1
+            Mtop1 = Ptop1.M()
+            Ptop2 = Pw + JetP2
+            Mtop2 = Ptop2.M()
+            if abs(Mtop1-172.5) > abs(Mtop2-172.5):
+                Mtop = Mtop2
+            else:
+                Mtop = Mtop1
+            TopHist.Fill(Mtop)
 
-            #if (Jet_pt[jet_sub_maxpt_idx] > 25 and Jet_eta[jet_sub_maxpt_idx] < 2.4) and jet_cut_count >= 2 and ele_cut_count >= 1:
-                Ptop1 = Pw + JetP1
-                #Mtop1 = sqrt(Ptop1.Dot(Ptop1))
-                Mtop1 = Ptop1.M()
-                Ptop2 = Pw + JetP2
-                #Mtop2 = sqrt(Ptop2.Dot(Ptop2))
-                Mtop2 = Ptop2.M()
-                #Ptop12 = Ptop1 + Ptop2
-                if abs(Mtop1-172.5) > abs(Mtop2-172.5):
-                    Mtop = Mtop2
-                else:
-                    Mtop = Mtop1
-                #if (Ptop1.Pt() > 250 and Ptop12.Pt() > 350) or (Ptop2.Pt() > 250 and Ptop12.Pt() > 350):
-                    #if Mtop > 120 and Mtop < 220:
-                TopHist.Fill(Mtop)
+            # if lep == ROOT.Math.PtEtaPhiMVector(Muon_pt[mu_maxpt_idx], Muon_eta[mu_maxpt_idx], Muon_phi[mu_maxpt_idx], Muon_mass[mu_maxpt_idx]) :
+            #     DrMuonJet1 = ROOT.Math.VectorUtil.DeltaR(lep, JetP1)
+            #     DrMuonJet1Hist.Fill(DrMuonJet1)
 
-                # DrMuonJet1 = ROOT.Math.VectorUtil.DeltaR(mu, JetP1)
-                # DrMuonJet1Hist.Fill(DrMuonJet1)
+            #     DrMuonJet2 = ROOT.Math.VectorUtil.DeltaR(lep, JetP2)
+            #     DrMuonJet2Hist.Fill(DrMuonJet2)
 
-                # DrMuonJet2 = ROOT.Math.VectorUtil.DeltaR(mu, JetP2)
-                # DrMuonJet2Hist.Fill(DrMuonJet2)
-
+            if lep_channel == 0:
                 DrEleJet1 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP1)
                 DrEleJet1Hist.Fill(DrEleJet1)
 
                 DrEleJet2 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP2)
                 DrEleJet2Hist.Fill(DrEleJet2)
+          
+            # if ele_cut_count >= 1 and mu_cut_count >= 1:
+            #     if Ele_pt[ele_maxpt_idx] > Muon_pt[mu_maxpt_idx]:
+            #         Ele = ROOT.Math.PtEtaPhiMVector(Ele_pt[ele_maxpt_idx], Ele_eta[ele_maxpt_idx], Ele_phi[ele_maxpt_idx], Ele_mass[ele_maxpt_idx])
+            #         nu = ROOT.Math.PxPyPzEVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), sqrt(nu_pt**2 + nu.Pz()**2))
+            #         #mu = ROOT.Math.PtEtaPhiMVector(Muon_pt[mu_maxpt_idx], Muon_eta[mu_maxpt_idx], Muon_phi[mu_maxpt_idx], Muon_mass[mu_maxpt_idx])
+                    
+            #         JetP1 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_sub_maxpt_idx], Jet_eta[jet_sub_maxpt_idx], Jet_phi[jet_sub_maxpt_idx], Jet_mass[jet_sub_maxpt_idx])
+            #         JetP2 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_maxpt_idx], Jet_eta[jet_maxpt_idx], Jet_phi[jet_maxpt_idx], Jet_mass[jet_maxpt_idx])   
+                    
+            #         WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
+
+            #         print('WmT^2=',WmT2)
+
+            #         #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #         WmT =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+            #         #WmT =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+            #         #WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+
+            #         # 80.4 GeV is the W-boson pole mass
+            #         if WmT > 80.4:
+            #             k = nu.Et() * Ele.Pt() - nu.Px() * Ele.Px() - nu.Py() * Ele.Py()
+            #             #k = nu.Et() * mu.Pt() - nu.Px() * mu.Px() - nu.Py() * mu.Py()
+            #             if k < 0.0001:
+            #                 k = 0.0001
+            #             scf = 1/2 * 80.4**2/k
+            #             nu.SetPx(nu.Px()*scf)
+            #             nu.SetPy(nu.Py()*scf)
+            #             nu.SetE(nu.P())
+
+
+                            
+            #         lamda = (80.4)**2/2 + Ele.Px()*nu.Px() + Ele.Py()*nu.Py()
+            #         #lamda = (80.4)**2/2 + mu.Px()*nu.Px() + mu.Py()*nu.Py()
+                        
+            #         #if Ele.Pt() > 0 or Ele.Pt() < 0:
+            #         discr = (lamda*Ele.Pz())**2/(Ele.Pt())**4 - ((Ele.E()*nu.Pt())**2 - lamda**2)/(Ele.Pt())**2 
+            #         #discr = (lamda*mu.Pz())**2/(mu.Pt())**4 - ((mu.E()*nu.Pt())**2 - lamda**2)/(mu.Pt())**2
+
+            #         if WmT > 80.4 or discr < 0:
+
+            #             s = (lamda*Ele.Pz())/(Ele.Pt())**2
+            #             #s = (lamda*mu.Pz())/(mu.Pt())**2
+            #             nu.SetPz(s)
+            #             nu.SetE(nu.P())
+            #             #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+            #         else:
+            #             s1 = (lamda*Ele.Pz())/(Ele.Pt())**2 + sqrt(discr)
+            #             s2 = (lamda*Ele.Pz())/(Ele.Pt())**2 - sqrt(discr)
+            #             #s1 = (lamda*mu.Pz())/(mu.Pt())**2 + sqrt(discr)
+            #             #s2 = (lamda*mu.Pz())/(mu.Pt())**2 - sqrt(discr)
+
+            #             nu.SetPz(s1)
+            #             nu.SetE(nu.P())
+            #             #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+            #             #Wm1 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+            #             #Wm1 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #             Wm1 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+            #             #Wm1 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+
+            #             nu.SetPz(s2)
+            #             nu.SetE(nu.P())
+            #             #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+            #             #Wm2 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+            #             #Wm2 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #             Wm2 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+            #             #Wm2 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+
+            #             if abs(Wm2 - 80.4) > abs(Wm1 - 80.4):    
+            #                 nu.SetPz(s1)
+            #                 nu.SetE(nu.P())
+            #                 #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+                            
+            #             else:
+            #                 nu.SetPz(s2)
+            #                 nu.SetE(nu.P())
+            #                 #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+                                
+            
+            #     #if ele_cut_count >= 1 and jet_cut_count >= 2:
+            #         #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #         #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+
+            #         WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+            #         WmT = sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+
+            #         # WmI2 = (Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2
+            #         # WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
+
+            #         # print('WmI^2=',WmI2,',WmT^2=',WmT2)
+
+
+            #         #WmI = sqrt((mu.E()+nu.E())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2-(mu.Pz()+nu.Pz())**2)
+            #         #WmT = sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+
+            #         print(WmT)
+            #         WmTHist.Fill(WmT)
+            #         Pw = Ele + nu
+            #         #Pw = mu + nu
+            #         WmtHist.Fill(Pw.Mt())
+            #         WmIHist.Fill(WmI)
+            #         #Mw2 = Pw.Dot(Pw)
+            #         #print(sqrt(Mw2))
+
+            #     #if (Jet_pt[jet_sub_maxpt_idx] > 25 and Jet_eta[jet_sub_maxpt_idx] < 2.4) and jet_cut_count >= 2 and ele_cut_count >= 1:
+            #         Ptop1 = Pw + JetP1
+            #         #Mtop1 = sqrt(Ptop1.Dot(Ptop1))
+            #         Mtop1 = Ptop1.M()
+            #         Ptop2 = Pw + JetP2
+            #         #Mtop2 = sqrt(Ptop2.Dot(Ptop2))
+            #         Mtop2 = Ptop2.M()
+            #         #Ptop12 = Ptop1 + Ptop2
+            #         if abs(Mtop1-172.5) > abs(Mtop2-172.5):
+            #             Mtop = Mtop2
+            #         else:
+            #             Mtop = Mtop1
+            #         #if (Ptop1.Pt() > 250 and Ptop12.Pt() > 350) or (Ptop2.Pt() > 250 and Ptop12.Pt() > 350):
+            #             #if Mtop > 120 and Mtop < 220:
+            #         TopHist.Fill(Mtop)
+
+            #         # DrMuonJet1 = ROOT.Math.VectorUtil.DeltaR(mu, JetP1)
+            #         # DrMuonJet1Hist.Fill(DrMuonJet1)
+
+            #         # DrMuonJet2 = ROOT.Math.VectorUtil.DeltaR(mu, JetP2)
+            #         # DrMuonJet2Hist.Fill(DrMuonJet2)
+
+            #         DrEleJet1 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP1)
+            #         DrEleJet1Hist.Fill(DrEleJet1)
+
+            #         DrEleJet2 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP2)
+            #         DrEleJet2Hist.Fill(DrEleJet2)
+            # elif ele_cut_count >= 1 and mu_cut_count < 1:
+            #     Ele = ROOT.Math.PtEtaPhiMVector(Ele_pt[ele_maxpt_idx], Ele_eta[ele_maxpt_idx], Ele_phi[ele_maxpt_idx], Ele_mass[ele_maxpt_idx])
+            #     nu = ROOT.Math.PxPyPzEVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), sqrt(nu_pt**2 + nu.Pz()**2))
+            #     #mu = ROOT.Math.PtEtaPhiMVector(Muon_pt[mu_maxpt_idx], Muon_eta[mu_maxpt_idx], Muon_phi[mu_maxpt_idx], Muon_mass[mu_maxpt_idx])
+                
+            #     #nu = ROOT.Math.PxPyPzMVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), 0)
+            #     #nu = ROOT.Math.PxPyPzEVector(nu_pt*cos(nu_phi), nu_pt*sin(nu_phi), nu.Pz(), nu.E())
+            #     #nu = ROOT.Math.PtEtaPhiEVector(nu_pt, nu.Eta(), nu_phi, nu.E())
+            #     #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+            
+            # #if jet_cut_count >= 2 and ele_cut_count >= 1:
+            #     JetP1 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_sub_maxpt_idx], Jet_eta[jet_sub_maxpt_idx], Jet_phi[jet_sub_maxpt_idx], Jet_mass[jet_sub_maxpt_idx])
+            #     JetP2 = ROOT.Math.PtEtaPhiMVector(Jet_pt[jet_maxpt_idx], Jet_eta[jet_maxpt_idx], Jet_phi[jet_maxpt_idx], Jet_mass[jet_maxpt_idx])   
+                
+            #     WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
+
+            #     print('WmT^2=',WmT2)
+
+            #     #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #     WmT =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+            #     #WmT =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+            #     #WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+
+            #     # 80.4 GeV is the W-boson pole mass
+            #     if WmT > 80.4:
+            #         k = nu.Et() * Ele.Pt() - nu.Px() * Ele.Px() - nu.Py() * Ele.Py()
+            #         #k = nu.Et() * mu.Pt() - nu.Px() * mu.Px() - nu.Py() * mu.Py()
+            #         if k < 0.0001:
+            #             k = 0.0001
+            #         scf = 1/2 * 80.4**2/k
+            #         nu.SetPx(nu.Px()*scf)
+            #         nu.SetPy(nu.Py()*scf)
+            #         nu.SetE(nu.P())
+
+
+                        
+            #     lamda = (80.4)**2/2 + Ele.Px()*nu.Px() + Ele.Py()*nu.Py()
+            #     #lamda = (80.4)**2/2 + mu.Px()*nu.Px() + mu.Py()*nu.Py()
+                    
+            #     #if Ele.Pt() > 0 or Ele.Pt() < 0:
+            #     discr = (lamda*Ele.Pz())**2/(Ele.Pt())**4 - ((Ele.E()*nu.Pt())**2 - lamda**2)/(Ele.Pt())**2 
+            #     #discr = (lamda*mu.Pz())**2/(mu.Pt())**4 - ((mu.E()*nu.Pt())**2 - lamda**2)/(mu.Pt())**2
+
+            #     if WmT > 80.4 or discr < 0:
+            #         # k = nu.Et() * Ele.Pt() - nu.Px() * Ele.Px() - nu.Py() * Ele.Py()
+            #         # if k < 0.0001:
+            #         #     k = 0.0001
+            #         # scf = 1/2 * 80.4**2/k
+            #         # nu.SetPx(nu.Px()*scf)
+            #         # nu.SetPy(nu.Py()*scf)
+            #         #nu.SetE(nu.P())
+
+            #         s = (lamda*Ele.Pz())/(Ele.Pt())**2
+            #         #s = (lamda*mu.Pz())/(mu.Pt())**2
+            #         nu.SetPz(s)
+            #         nu.SetE(nu.P())
+            #         #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+            #     else:
+            #         s1 = (lamda*Ele.Pz())/(Ele.Pt())**2 + sqrt(discr)
+            #         s2 = (lamda*Ele.Pz())/(Ele.Pt())**2 - sqrt(discr)
+            #         #s1 = (lamda*mu.Pz())/(mu.Pt())**2 + sqrt(discr)
+            #         #s2 = (lamda*mu.Pz())/(mu.Pt())**2 - sqrt(discr)
+
+            #         nu.SetPz(s1)
+            #         nu.SetE(nu.P())
+            #         #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+            #         #Wm1 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+            #         #Wm1 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #         Wm1 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+            #         #Wm1 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+
+            #         nu.SetPz(s2)
+            #         nu.SetE(nu.P())
+            #         #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+            #         #Wm2 = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+            #         #Wm2 =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #         Wm2 =  sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+            #         #Wm2 =  sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+
+            #         if abs(Wm2 - 80.4) > abs(Wm1 - 80.4):    
+            #             nu.SetPz(s1)
+            #             nu.SetE(nu.P())
+            #             #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+                        
+            #         else:
+            #             nu.SetPz(s2)
+            #             nu.SetE(nu.P())
+            #             #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+                            
+        
+            # #if ele_cut_count >= 1 and jet_cut_count >= 2:
+            #     #Wm =  sqrt(2*(Ele.E()*nu.E()-Ele.Px()*nu.Px()-Ele.Py()*nu.Py()-Ele.Pz()*nu.Pz()))
+            #     #nu = ROOT.Math.PxPyPzEVector(nu.Px(), nu.Py(), nu.Pz(), nu.E())
+
+            #     WmI = sqrt((Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2)
+            #     WmT = sqrt((Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2)
+
+            #     # WmI2 = (Ele.E()+nu.E())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2-(Ele.Pz()+nu.Pz())**2
+            #     # WmT2 = (Ele.Pt()+nu.Et())**2-(Ele.Px()+nu.Px())**2-(Ele.Py()+nu.Py())**2
+
+            #     # print('WmI^2=',WmI2,',WmT^2=',WmT2)
+
+
+            #     #WmI = sqrt((mu.E()+nu.E())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2-(mu.Pz()+nu.Pz())**2)
+            #     #WmT = sqrt((mu.Pt()+nu.Et())**2-(mu.Px()+nu.Px())**2-(mu.Py()+nu.Py())**2)
+
+            #     print(WmT)
+            #     WmTHist.Fill(WmT)
+            #     Pw = Ele + nu
+            #     #Pw = mu + nu
+            #     WmtHist.Fill(Pw.Mt())
+            #     WmIHist.Fill(WmI)
+            #     #Mw2 = Pw.Dot(Pw)
+            #     #print(sqrt(Mw2))
+
+            # #if (Jet_pt[jet_sub_maxpt_idx] > 25 and Jet_eta[jet_sub_maxpt_idx] < 2.4) and jet_cut_count >= 2 and ele_cut_count >= 1:
+            #     Ptop1 = Pw + JetP1
+            #     #Mtop1 = sqrt(Ptop1.Dot(Ptop1))
+            #     Mtop1 = Ptop1.M()
+            #     Ptop2 = Pw + JetP2
+            #     #Mtop2 = sqrt(Ptop2.Dot(Ptop2))
+            #     Mtop2 = Ptop2.M()
+            #     #Ptop12 = Ptop1 + Ptop2
+            #     if abs(Mtop1-172.5) > abs(Mtop2-172.5):
+            #         Mtop = Mtop2
+            #     else:
+            #         Mtop = Mtop1
+            #     #if (Ptop1.Pt() > 250 and Ptop12.Pt() > 350) or (Ptop2.Pt() > 250 and Ptop12.Pt() > 350):
+            #         #if Mtop > 120 and Mtop < 220:
+            #     TopHist.Fill(Mtop)
+
+            #     # DrMuonJet1 = ROOT.Math.VectorUtil.DeltaR(mu, JetP1)
+            #     # DrMuonJet1Hist.Fill(DrMuonJet1)
+
+            #     # DrMuonJet2 = ROOT.Math.VectorUtil.DeltaR(mu, JetP2)
+            #     # DrMuonJet2Hist.Fill(DrMuonJet2)
+
+            #     DrEleJet1 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP1)
+            #     DrEleJet1Hist.Fill(DrEleJet1)
+
+            #     DrEleJet2 = ROOT.Math.VectorUtil.DeltaR(Ele, JetP2)
+            #     DrEleJet2Hist.Fill(DrEleJet2)
+
     file_count += 1
     events_count += entries
     print('events count =', events_count)
-    if events_count >= 80000:
+    if events_count >= 10000:
         break
     
 
